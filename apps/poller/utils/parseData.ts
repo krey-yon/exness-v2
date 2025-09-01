@@ -1,6 +1,7 @@
 type RawTradeMessage = {
   stream: string;
   data: {
+    s: string;
     p: string;
     T: number;
     [key: string]: any;
@@ -10,6 +11,7 @@ type RawTradeMessage = {
 type ParsedData = {
   marketData: {
     [stream: string]: {
+      symbol: string;
       basePrice: number;
       decimal: number;
       buyPrice: number;
@@ -28,6 +30,7 @@ export function parseMarketData(
 
   for (const msg of msgs) {
     const { stream, data } = msg;
+    const symbol = data.s;
     const basePrice = parseFloat((parseFloat(data.p) * 10000).toFixed(2));
     const decimal = 4;
     const spread = basePrice * Math.random() * 0.005;
@@ -40,6 +43,7 @@ export function parseMarketData(
     }
 
     result.marketData[stream].push({
+      symbol,
       basePrice,
       decimal,
       buyPrice,
@@ -47,6 +51,5 @@ export function parseMarketData(
       timestamp,
     });
   }
-
   return result;
 }

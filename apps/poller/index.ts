@@ -27,7 +27,7 @@ async function flushBuffer() {
 
   await redis.lpush("batchQueue", JSON.stringify(batch));
 
-  console.log(`Enqueued batch of size ${batch.length}`);
+  console.log(`Enqueued batch of size ${batch.length} ${Date.now()}`);
 }
 setInterval(() => {
   flushBuffer().catch(console.error);

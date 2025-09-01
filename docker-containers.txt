@@ -11,3 +11,114 @@ docker run -d --name postgres \
   -e POSTGRES_PASSWORD=mysecretpassword \
   -e PGDATA=/var/lib/postgresql/data \
   postgres:17
+
+
+--Raw SQL commands
+CREATE TABLE market_data (
+    symbol TEXT NOT NULL,
+    basePrice NUMERIC(20,10) NOT NULL,
+    decimal INT NOT NULL,
+    buyPrice NUMERIC(20,10) NOT NULL,
+    sellPrice NUMERIC(20,10) NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (symbol, timestamp)
+);
+
+SELECT create_hypertable('market_data', 'timestamp');
+
+-- 1 minute candles
+CREATE MATERIALIZED VIEW candles_1min
+WITH (timescaledb.continuous) AS
+SELECT
+    symbol,
+    time_bucket('1 minute', timestamp) AS bucket,
+    first(basePrice, timestamp) AS open,
+    MAX(basePrice) AS high,
+    MIN(basePrice) AS low,
+    last(basePrice, timestamp) AS close
+FROM market_data
+GROUP BY symbol, bucket;
+
+-- 5 minute candles
+CREATE MATERIALIZED VIEW candles_5min
+WITH (timescaledb.continuous) AS
+SELECT
+    symbol,
+    time_bucket('5 minutes', timestamp) AS bucket,
+    first(basePrice, timestamp) AS open,
+    MAX(basePrice) AS high,
+    MIN(basePrice) AS low,
+    last(basePrice, timestamp) AS close
+FROM market_data
+GROUP BY symbol, bucket;
+
+-- 15 minute candles
+CREATE MATERIALIZED VIEW candles_15min
+WITH (timescaledb.continuous) AS
+SELECT
+    symbol,
+    time_bucket('15 minutes', timestamp) AS bucket,
+    first(basePrice, timestamp) AS open,
+    MAX(basePrice) AS high,
+    MIN(basePrice) AS low,
+    last(basePrice, timestamp) AS close
+FROM market_data
+GROUP BY symbol, bucket;
+
+-- 30 minute candles
+CREATE MATERIALIZED VIEW candles_30min
+WITH (timescaledb.continuous) AS
+SELECT
+    symbol,
+    time_bucket('30 minutes', timestamp) AS bucket,
+    first(basePrice, timestamp) AS open,
+    MAX(basePrice) AS high,
+    MIN(basePrice) AS low,
+    last(basePrice, timestamp) AS close
+FROM market_data
+GROUP BY symbol, bucket;
+
+-- 1 hour candles
+CREATE MATERIALIZED VIEW candles_1hour
+WITH (timescaledb.continuous) AS
+SELECT
+    symbol,
+    time_bucket('1 hour', timestamp) AS bucket,
+    first(basePrice, timestamp) AS open,
+    MAX(basePrice) AS high,
+    MIN(basePrice) AS low,
+    last(basePrice, timestamp) AS close
+FROM market_data
+GROUP BY symbol, bucket;
+
+
+-- 1 minute candles, refresh every minute, keep last 1 day rolling
+SELECT add_continuous_aggregate_policy('candles_1min',
+    start_offset => INTERVAL '1 day',
+    end_offset   => INTERVAL '1 minute',
+    schedule_interval => INTERVAL '1 minute');
+
+-- 5 minute candles, refresh every 5 minutes, keep last 7 days
+SELECT add_continuous_aggregate_policy('candles_5min',
+    start_offset => INTERVAL '7 days',
+    end_offset   => INTERVAL '5 minutes',
+    schedule_interval => INTERVAL '5 minutes');
+
+-- 15 minute candles, refresh every 15 minutes, keep last 14 days
+SELECT add_continuous_aggregate_policy('candles_15min',
+    start_offset => INTERVAL '14 days',
+    end_offset   => INTERVAL '15 minutes',
+    schedule_interval => INTERVAL '15 minutes');
+
+-- 30 minute candles, refresh every 30 minutes, keep last 30 days
+SELECT add_continuous_aggregate_policy('candles_30min',
+    start_offset => INTERVAL '30 days',
+    end_offset   => INTERVAL '30 minutes',
+    schedule_interval => INTERVAL '30 minutes');
+
+-- 1 hour candles, refresh every 1 hour, keep last 90 days
+SELECT add_continuous_aggregate_policy('candles_1hour',
+    start_offset => INTERVAL '90 days',
+    end_offset   => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+
